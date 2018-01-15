@@ -12,9 +12,6 @@ use Piwik\Cache;
 use Piwik\CacheId;
 use Piwik\API\Request;
 use Piwik\Common;
-use Piwik\Plugin;
-use Piwik\Piwik;
-use Piwik\Plugins\Live\ProfileSummary\ProfileSummaryAbstract;
 
 /**
  *
@@ -125,20 +122,26 @@ class Live extends \Piwik\Plugin
 
     public static function getSegmentWithVisitorId()
     {
-        static $cached = null;
-        if ($cached === null) {
-            $segment = Request::getRawSegmentFromRequest();
-            if (!empty($segment)) {
-                $segment = urldecode($segment) . ';';
-            }
+        $cache   = Cache::getTransientCache();
+        $cacheId = 'segmentWithVisitorId';
 
-            $idVisitor = Common::getRequestVar('visitorId', false);
-            if ($idVisitor === false) {
-                $idVisitor = Request::processRequest('Live.getMostRecentVisitorId');
-            }
-
-            $cached = urlencode($segment . 'visitorId==' . $idVisitor);
+        if ($cache->contains($cacheId)) {
+            return $cache->fetch($cacheId);
         }
-        return $cached;
+
+        $segment = Request::getRawSegmentFromRequest();
+        if (!empty($segment)) {
+            $segment = urldecode($segment) . ';';
+        }
+
+        $idVisitor = Common::getRequestVar('visitorId', false);
+        if ($idVisitor === false) {
+            $idVisitor = Request::processRequest('Live.getMostRecentVisitorId');
+        }
+
+        $result = urlencode($segment . 'visitorId==' . $idVisitor);
+        $cache->save($cacheId, $result);
+
+        return $result;
     }
 }
